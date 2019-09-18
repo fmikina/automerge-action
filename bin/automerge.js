@@ -7,7 +7,7 @@ const { ArgumentParser } = require("argparse");
 const Octokit = require("@octokit/rest");
 
 const { ClientError, NeutralExitError, logger } = require("../lib/common");
-const { executeLocally, executeGitHubAction } = require("../lib/api");
+const { executeGitHubAction } = require("../lib/api");
 
 const pkg = require("../package.json");
 
@@ -51,23 +51,18 @@ async function main() {
   const automerge = process.env.AUTOMERGE || "automerge";
   const autorebase = process.env.AUTOREBASE || "autorebase";
   const mergeMethod = process.env.MERGE_METHOD || "merge";
-  const config = { labels, automerge, autorebase, mergeMethod };
+  const repo = env("GITHUB_REPOSITORY")
+  const config = { labels, automerge, autorebase, mergeMethod, repo };
 
   logger.debug("Configuration:", config);
 
   const context = { token, octokit, config };
+  const eventPath = env("GITHUB_EVENT_PATH");
+  const eventName = env("GITHUB_EVENT_NAME");
+  const eventDataStr = await fse.readFile(eventPath, "utf8");
+  const eventData = JSON.parse(eventDataStr);
 
-  if (args.url) {
-    await executeLocally(context, args.url);
-  } else {
-    const eventPath = env("GITHUB_EVENT_PATH");
-    const eventName = env("GITHUB_EVENT_NAME");
-
-    const eventDataStr = await fse.readFile(eventPath, "utf8");
-    const eventData = JSON.parse(eventDataStr);
-
-    await executeGitHubAction(context, eventName, eventData);
-  }
+  await executeGitHubAction(context, eventName, eventData);
 }
 
 function env(name) {
