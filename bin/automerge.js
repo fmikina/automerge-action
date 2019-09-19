@@ -53,7 +53,8 @@ async function main() {
   const mergeMethod = process.env.MERGE_METHOD || "merge";
   const repo = env("GITHUB_REPOSITORY")
   const maxPrs = process.env.MAX_PR_TO_CHECK || 100;
-  const config = { labels, automerge, autorebase, mergeMethod, repo, maxPrs };
+  const skipAdvancedApprovalValidation = process.env.SKIP_ADVANCED_APPROVAL_VALIDATION || "skip_approval_validation";
+  const config = { labels, automerge, autorebase, mergeMethod, repo, maxPrs, skipAdvancedApprovalValidation };
 
   logger.debug("Configuration:", config);
 
