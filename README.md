@@ -2,7 +2,7 @@
 
 GitHub action to automatically merge pull requests when they are ready.
 
-<img src="https://pascalgn.github.io/automerge-action/screenshot.svg" width="100%">
+## Description
 
 This action will behave differently based on the labels assigned to a pull
 request:
@@ -20,40 +20,28 @@ These labels are configurable, see [Configuration](#configuration).
 
 A pull request is considered ready when:
 
-1. the required number of review approvals has been given (if enabled in the
-   branch protection rules) and
+1. at least one approval has been given
 2. the required checks have passed (if enabled in the branch protection rules)
-   and
 3. the pull request is up to date (if enabled in the branch protection rules)
 
 After the pull request has been merged successfully, the branch will be
 deleted (unless there exist branch protection rules preventing this branch
 from being deleted).
 
+## How does it work
+
+This action uses `GitHub Api` to get last `MAX_PR_TO_CHECK` from a repository it has been assigned to. After that it traverses all of the pull requests to filter them by checking the `label`. The next step is checking the approval, in our company the following schema is sometimes a case: reviewer approves the PR but this approval does not mean that pull request can be merged safely, for example there are some minor changes but due to timezone differences reviewer gives an approval earlier. That is why, there is additional check which checks whether in last approval a reviewer left some additional comments or not (it can easily be skipped by labelling a pull request with `SKIP_ADVANCED_APPROVAL_VALIDATION` if you do not wish to support this feature).
+
 ## Usage
 
-Add this to your `.github/main.workflow` file:
+Add this to your `.github/workflows/workflow-name.yml` file:
 
 ```
-workflow "automerge pull requests on updates" {
-  on = "pull_request"
-  resolves = ["automerge"]
-}
-
-workflow "automerge pull requests on reviews" {
-  on = "pull_request_review"
-  resolves = ["automerge"]
-}
-
-workflow "automerge pull requests on status updates" {
-  on = "status"
-  resolves = ["automerge"]
-}
-
-action "automerge" {
-  uses = "pascalgn/automerge-action@33f73f0a562129c7e96123e98af20d4378f1fa3b"
-  secrets = ["GITHUB_TOKEN"]
-}
+steps:
+    - name: Merge pull requests
+      uses: fmikina/automerge-action@v1.0.7
+      env:
+        GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
 ```
 
 ## Configuration
@@ -89,7 +77,7 @@ The following environment variables are supported:
   (by default, it will run as `github-actions`). This can be useful if you want
   to use the _Restrict who can push to matching branches_ option in the branch
   protection rules, for example.
-
+  
   To use this setting, you need to create a
   [personal access token](https://help.github.com/en/articles/creating-a-personal-access-token-for-the-command-line)
   for the user (make sure to check `public_repo` when it's a public repository
@@ -97,20 +85,20 @@ The following environment variables are supported:
   will then be executed as the specified user. The token should be kept secret,
   so make sure to add it as secret, not as environment variable, in the GitHub
   workflow file.
+- `MAX_PR_TO_CHECK`: Maximum number of pull requests to check for mergeability (defaults to 100). It affects only last `MAX_PR_TO_CHECK` number of pull requests from the given reposirory.
+- `SKIP_ADVANCED_APPROVAL_VALIDATION`: A label name for skipping advanced approval validation (defaults to `skip_approval_validation`).
 
 You can configure the environment variables in the workflow file like this:
 
 ```
-action "automerge" {
-  uses = ...
-  secrets = ["GITHUB_TOKEN"]
-  env = {
-    LABELS = "!wip,!work in progress,documentation-updated"
-    AUTOMERGE = "ready-to-merge"
-    AUTOREBASE = "ready-to-rebase-and-merge"
-    MERGE_METHOD = "squash"
-  }
-}
+- name: Merge pull requests
+      uses: fmikina/automerge-action@v1.0.7
+      env:
+        GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+        LABELS = "!wip,!work in progress,documentation-updated"
+        AUTOMERGE = "ready-to-merge"
+        AUTOREBASE = "ready-to-rebase-and-merge"
+        MERGE_METHOD = "squash"
 ```
 
 ## License
